@@ -106,56 +106,57 @@ public class ApplicationContext implements Runnable {
 
         while(!beansWithParameters.isEmpty() || !constructorsWithParameters.isEmpty()) {
 
-          beansWithParameters.stream()
+          var invokedMethods = beansWithParameters.stream()
             .filter(method -> Arrays.stream(method.getParameterTypes())
-              .anyMatch(availableBeansToInject::containsKey)
+              .allMatch(availableBeansToInject::containsKey)
             )
-            .map(method -> {
+            .peek(method -> {
               var arguments = Arrays.stream(method.getParameterTypes())
                 .map(availableBeansToInject::get)
                 .toArray();
 
               try {
 
-                return Map.entry(method.getReturnType(), method.invoke(arguments));
+                if(arguments.length != 0) {
+
+                  availableBeansToInject.put(method.getReturnType(), method.invoke(null, arguments));
+
+                } else {
+                  availableBeansToInject.put(method.getReturnType(), method.invoke(null));
+                }
 
               } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException("Failed to initialize object.", e);
               }
 
-            }).forEach(entry -> availableBeansToInject.put(entry.getKey(), entry.getValue()));
+            })
+            .collect(Collectors.toSet());
+
+          beansWithParameters.removeAll(invokedMethods);
 
 
-           beansWithParameters = beansWithParameters.stream()
+
+          var invokedConstructors = constructorsWithParameters.stream()
             .filter(method -> Arrays.stream(method.getParameterTypes())
-              .anyMatch(Predicate.not(availableBeansToInject::containsKey))
-            ).collect(toSet());
-
-
-          constructorsWithParameters.stream()
-            .filter(method -> Arrays.stream(method.getParameterTypes())
-              .anyMatch(availableBeansToInject::containsKey)
+              .allMatch(availableBeansToInject::containsKey)
             )
-            .map(method -> {
+            .peek(method -> {
               var arguments = Arrays.stream(method.getParameterTypes())
                 .map(availableBeansToInject::get)
                 .toArray();
 
               try {
 
-                return Map.entry(method.getDeclaringClass(), method.newInstance(arguments));
+                availableBeansToInject.put(method.getDeclaringClass(), method.newInstance(arguments));
 
               } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException("Failed to initialize object.", e);
               }
+            })
+            .collect(Collectors.toSet());
 
-            }).forEach(entry -> availableBeansToInject.put(entry.getKey(), entry.getValue()));
+          constructorsWithParameters.removeAll(invokedConstructors);
 
-
-          constructorsWithParameters = constructorsWithParameters.stream()
-            .filter(method -> Arrays.stream(method.getParameterTypes())
-              .anyMatch(Predicate.not(availableBeansToInject::containsKey))
-            ).collect(toSet());
         }
 
         return availableBeansToInject.entrySet().stream();
