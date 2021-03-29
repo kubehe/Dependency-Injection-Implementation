@@ -1,5 +1,11 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
+
+import java.nio.charset.Charset
+
 plugins {
+    id 'application'
     id 'java'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 group 'pl.kubehe'
@@ -13,10 +19,47 @@ dependencies {
     implementation 'org.reflections:reflections:0.9.11'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.2'
 
+    implementation 'com.typesafe.akka:akka-http_2.12:10.0.15'
+    implementation 'com.typesafe.akka:akka-stream_2.12:2.5.8'
+    implementation 'com.typesafe.akka:akka-actor_2.12:2.5.8'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-    testCompile("org.assertj:assertj-core:3.11.1")
 }
+
+mainClassName = 'pl.kubehe.helpers.demo.DemoApplication'
+
+jar {
+
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF', 'META-INF/LICENSE', 'META-INF/NOTICE', 'module-info.class'
+    duplicatesStrategy(DuplicatesStrategy.WARN)
+    manifest {
+        attributes 'Main-Class': "$mainClassName"
+    }
+    from {
+        configurations.runtimeClasspath.files.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(16)
+    }
+}
+
+
+application {
+    mainClassName = "$mainClassName"
+}
+
+shadowJar {
+    transform(AppendingTransformer.class) {
+        resource = 'reference.conf'
+    }
+    with jar
+}
+
 
 test {
     useJUnitPlatform()

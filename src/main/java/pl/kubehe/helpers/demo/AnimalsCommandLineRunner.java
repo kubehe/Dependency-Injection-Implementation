@@ -19,8 +19,8 @@ public class AnimalsCommandLineRunner implements CommandLineRunner {
   @Override
   public void run() {
     var factsAboutCats = this.catFactsService.randomFactsAboutCats(2).stream()
-      .map(CatFactsService.CatFact::getText)
-      .collect(Collectors.joining(", "));
+      .map(CatFactsService.CatFact::text)
+      .collect(Collectors.joining(" "));
 
     logger.info(factsAboutCats);
   }

@@ -5,6 +5,7 @@ import org.reflections.scanners.MethodAnnotationsScanner;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -18,6 +19,7 @@ import static java.util.stream.Collectors.*;
 public class ApplicationContext implements Runnable {
 
   protected Map<Class<?>, Object> context;
+  protected WebContext webContext;
 
   @Override
   public void run() {
@@ -31,6 +33,15 @@ public class ApplicationContext implements Runnable {
 
     executeRootClasses(wiredBeans, classesToRun);
 
+    this.webContext = new WebContext(context);
+
+    while(true) {
+      try {
+        Thread.sleep(60 * 1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
 
 
   }
